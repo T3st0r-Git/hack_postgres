@@ -9,6 +9,7 @@ fuck_postgres不是什么黑客攻击工具，他并不是要去fuck什么，只
 一切攻击都是违法行为，非管理员请不要。。。使用此工具的一切违法行为与本人无关。
 
 经测试，sqlmap上对于postgres的--os-shell无效，so文件和dll文件也有问题，语句略坑，所以我抽时间写一个，方便各位“管理员”。
+
 sqlmap该模块的写文件语句详见filesystem.py:
 ```
 def stackedWriteFile(self, wFile, dFile, fileType, forceCheck=False):
@@ -57,7 +58,8 @@ def stackedWriteFile(self, wFile, dFile, fileType, forceCheck=False):
 	return written
 ```
 
-filesystem.py line65，是将dll文件base64编码解码，整个写入到pg_largeobject的一个page，在linux某些版本一定会报错的。 每page容量为4096字节，如果是hex，只能容纳2kb的数据。
+filesystem.py line65，是将dll文件base64编码解码，整个写入到pg_largeobject的一个page，在linux某些版本一定会报错的。 
+每page容量为4096字节，如果是hex，只能容纳2kb的数据。
 
 ##### 工具特点：
 

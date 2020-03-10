@@ -1,10 +1,10 @@
-# fuck_postgres
+# hack_postgres
 
 ### 前言
 
 PostgreSQL在国外的流行程度不亚于MySQL，简称postgres。比如你kaili linux上的Metasploit数据库服务使用的就是PostgreSQL。
 
-fuck_postgres不是什么黑客攻击工具，他并不是要去fuck什么，只用于便捷地使用PostgreSQL自定义函数来执行系统命令，适用于数据库管理员知道postgres密码却不知道ssh或RDP密码的时候在服务器执行系统命令。
+fuck_postgres不是什么黑客攻击工具，他并不是要去hack什么，只用于便捷地使用PostgreSQL自定义函数来执行系统命令，适用于数据库管理员知道postgres密码却不知道ssh或RDP密码的时候在服务器执行系统命令。
 
 一切攻击都是违法行为，非管理员请不要。。。使用此工具的一切违法行为与本人无关。
 
